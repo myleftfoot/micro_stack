@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  influxdb:
+    image: influxdb:latest
+    ports:
+      - "8083:8083"
+      - "8086:8086"
+      - "8090:8090"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=telegraf
+      - DOCKER_INFLUXDB_INIT_PASSWORD=telegraf
+      - DOCKER_INFLUXDB_INIT_ORG=j3s3
+      - DOCKER_INFLUXDB_INIT_BUCKET=sensors
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN="${FLUX_TOKEN:-f44cc06b-24cb-4c7b-aa31-78cdffdb8784}"
+    volumes:
+      - influxdb-storage:/var/lib/influxdb2
+
+    networks:
+      - webnet
+
+  telegraf:
+    image: telegraf:latest        
+    environment:                  
+      - FLUX_TOKEN="${FLUX_TOKEN:-f44cc06b-24cb-4c7b-aa31-78cdffdb8784}"
+    volumes:
+      - ./telegraf:/etc/telegraf
+    networks:
+      - webnet
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    depends_on:
+      - influxdb
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    networks:
+      - webnet
+
+  mosquitto:
+      image: eclipse-mosquitto:latest
+      hostname: mosquitto
+      ports:
+        - "8883:8883"
+        - "9001:9001"
+      volumes: 
+        - ./mosquitto:/mosquitto/config
+      networks:
+        - webnet
+
+networks:
+  webnet:
+
+volumes:
+  influxdb-storage:
+  grafana-storage:
